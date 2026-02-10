@@ -1,5 +1,7 @@
 # LiberNotes(自由便签)
 
+<p align="center">   <img src="build/icon.ico" width="200"> </p>
+
 一个简洁高效的桌面悬浮便签应用，让你随时记录想法，随时查看备忘。
 
 ## 功能特性
