@@ -15,7 +15,7 @@
 
 **Electron + React + TypeScript + Vite + Tailwind CSS + Framer Motion + Zustand**
 
-## 快速开始
+## QuickStart
 
 无需安装 Node.js 或编译，直接下载使用：
 
