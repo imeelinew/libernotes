@@ -21,7 +21,7 @@
 
 无需安装 Node.js 或编译，直接下载使用：
 
-1. 前往 [Releases](https://github.com/yourusername/liber-notes/releases) 页面
+1. 前往 [Releases](https://github.com/imeelinew/libernotes/releases) 页面
 2. 下载最新版本的 `LiberNotes Setup 1.0.0.exe`
 3. 运行安装程序，按提示完成安装
 4. 从开始菜单或桌面快捷方式启动应用
