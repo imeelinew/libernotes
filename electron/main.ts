@@ -5,6 +5,7 @@ import { uIOhook, UiohookKey } from 'uiohook-napi';
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
 let isVisible = false;
+const HIDE_ANIMATION_MS = 260;
 
 const createWindow = () => {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
@@ -53,7 +54,7 @@ const toggleNotes = () => {
     setTimeout(() => {
       mainWindow?.hide();
       isVisible = false;
-    }, 600);
+    }, HIDE_ANIMATION_MS);
   } else {
     mainWindow.show();
     mainWindow.focus();
@@ -162,5 +163,5 @@ ipcMain.on('hide-window', () => {
   setTimeout(() => {
     mainWindow?.hide();
     isVisible = false;
-  }, 600);
+  }, HIDE_ANIMATION_MS);
 });

@@ -18,15 +18,19 @@ interface NotesState {
   notes: Note[];
   isVisible: boolean;
   searchQuery: string;
+  deletedHistory: Note[][];
+  canUndoDelete: boolean;
   addNote: () => void;
   removeNote: (id: string) => void;
   updateNote: (id: string, updates: Partial<Note>) => void;
   updateNoteContent: (id: string, content: string) => void;
   bringToFront: (id: string) => void;
   clearAllNotes: () => void;
+  undoDelete: () => void;
+  resetDeleteHistory: () => void;
   setVisibility: (visible: boolean) => void;
   setSearchQuery: (query: string) => void;
-  importNotes: (notes: Note[]) => void;
+  importNotes: (notes: unknown[]) => void;
 }
 
 const colors = [
@@ -40,6 +44,8 @@ const colors = [
 
 const NOTE_DEFAULT_WIDTH = 250;
 const NOTE_DEFAULT_HEIGHT = 280;
+const MIN_NOTE_WIDTH = 160;
+const MIN_NOTE_HEIGHT = 120;
 const MARGIN = 10;
 const NOTE_GAP = 24;
 
@@ -74,6 +80,38 @@ const isOverlapping = (
 
 const getMaxZIndex = (notes: Note[]): number =>
   notes.reduce((max, n) => Math.max(max, n.zIndex ?? 10), 10);
+
+const toFiniteNumber = (value: unknown, fallback: number): number =>
+  typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+
+const sanitizeImportedNote = (raw: unknown): Note | null => {
+  if (!raw || typeof raw !== 'object') return null;
+  const note = raw as Partial<Note> & Record<string, unknown>;
+
+  const maxWidth = Math.max(MIN_NOTE_WIDTH, window.innerWidth - MARGIN * 2);
+  const maxHeight = Math.max(MIN_NOTE_HEIGHT, window.innerHeight - MARGIN * 2);
+  const width = Math.min(maxWidth, Math.max(MIN_NOTE_WIDTH, toFiniteNumber(note.width, NOTE_DEFAULT_WIDTH)));
+  const height = Math.min(maxHeight, Math.max(MIN_NOTE_HEIGHT, toFiniteNumber(note.height, NOTE_DEFAULT_HEIGHT)));
+
+  const position = clampPosition(
+    toFiniteNumber(note.x, MARGIN),
+    toFiniteNumber(note.y, 50),
+    width,
+    height
+  );
+
+  return {
+    id: typeof note.id === 'string' && note.id.trim() ? note.id : uuidv4(),
+    content: typeof note.content === 'string' ? note.content : '',
+    x: position.x,
+    y: position.y,
+    width,
+    height,
+    color: typeof note.color === 'string' && note.color.trim() ? note.color : colors[0],
+    zIndex: Math.max(1, Math.round(toFiniteNumber(note.zIndex, 10))),
+    createdAt: Math.max(0, toFiniteNumber(note.createdAt, 0)),
+  };
+};
 
 /** Find a position that doesn't overlap with existing notes */
 const findNonOverlappingPosition = (
@@ -112,6 +150,8 @@ export const useNotesStore = create<NotesState>()(
       notes: [],
       isVisible: false,
       searchQuery: '',
+      deletedHistory: [],
+      canUndoDelete: false,
 
       addNote: () => {
         const { notes } = get();
@@ -134,9 +174,17 @@ export const useNotesStore = create<NotesState>()(
       },
 
       removeNote: (id: string) => {
-        set((state) => ({
-          notes: state.notes.filter((note) => note.id !== id),
-        }));
+        set((state) => {
+          const deletedNote = state.notes.find((note) => note.id === id);
+          if (!deletedNote) return state;
+
+          const nextHistory = [...state.deletedHistory, [deletedNote]];
+          return {
+            notes: state.notes.filter((note) => note.id !== id),
+            deletedHistory: nextHistory,
+            canUndoDelete: true,
+          };
+        });
       },
 
       updateNote: (id: string, updates: Partial<Note>) => {
@@ -173,7 +221,41 @@ export const useNotesStore = create<NotesState>()(
       },
 
       clearAllNotes: () => {
-        set({ notes: [] });
+        set((state) => {
+          if (state.notes.length === 0) return state;
+
+          const snapshot = state.notes.map((note) => ({ ...note }));
+          const nextHistory = [...state.deletedHistory, snapshot];
+          return {
+            notes: [],
+            deletedHistory: nextHistory,
+            canUndoDelete: true,
+          };
+        });
+      },
+
+      undoDelete: () => {
+        set((state) => {
+          if (state.deletedHistory.length === 0) return state;
+
+          const lastBatch = state.deletedHistory[state.deletedHistory.length - 1];
+          const nextHistory = state.deletedHistory.slice(0, -1);
+          const existingIds = new Set(state.notes.map((note) => note.id));
+          const restoredNotes = lastBatch.filter((note) => !existingIds.has(note.id));
+
+          return {
+            notes: [...state.notes, ...restoredNotes],
+            deletedHistory: nextHistory,
+            canUndoDelete: nextHistory.length > 0,
+          };
+        });
+      },
+
+      resetDeleteHistory: () => {
+        set({
+          deletedHistory: [],
+          canUndoDelete: false,
+        });
       },
 
       setVisibility: (visible: boolean) => {
@@ -184,21 +266,10 @@ export const useNotesStore = create<NotesState>()(
         set({ searchQuery: query });
       },
 
-      importNotes: (imported: Note[]) => {
-        // Validate and sanitize imported notes
+      importNotes: (imported: unknown[]) => {
         const validNotes = imported
-          .filter((n) => n.id && typeof n.content === 'string')
-          .map((n) => ({
-            id: n.id || uuidv4(),
-            content: n.content || '',
-            x: n.x ?? 100,
-            y: n.y ?? 100,
-            width: n.width ?? NOTE_DEFAULT_WIDTH,
-            height: n.height ?? NOTE_DEFAULT_HEIGHT,
-            color: n.color || colors[0],
-            zIndex: n.zIndex ?? 10,
-            createdAt: n.createdAt ?? 0, // Imported notes shouldn't autofocus
-          }));
+          .map((note) => sanitizeImportedNote(note))
+          .filter((note): note is Note => note !== null);
         set({ notes: validNotes });
       },
     }),
