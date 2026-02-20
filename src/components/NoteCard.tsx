@@ -133,12 +133,32 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, isExiting }) => {
         onDragEnd={handleDragEnd}
         whileDrag={{ scale: 1.03 }}
         style={{ x: dragX, y: dragY, rotate }}
+        className="relative group"
       >
         <div
           className="absolute -inset-16 z-[-1] cursor-auto"
           onClick={(e) => e.stopPropagation()}
           onDoubleClick={(e) => e.stopPropagation()}
         />
+
+        <div className="absolute -top-9  -right-0 flex items-center gap-1 z-30 bg-white/70 backdrop-blur-sm border border-black/5 shadow-sm rounded-md px-1 py-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity duration-150">
+          <button
+            onClick={handleCopy}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
+            title="复制"
+          >
+            <Copy size={14} />
+          </button>
+          <button
+            onClick={handleDelete}
+            onPointerDown={(e) => e.stopPropagation()}
+            className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-all"
+            title="删除"
+          >
+            <X size={14} />
+          </button>
+        </div>
         <div
           className="relative rounded-lg shadow-xl flex flex-col cursor-move group"
           style={{
@@ -154,25 +174,6 @@ const NoteCard: React.FC<NoteCardProps> = ({ note, isExiting }) => {
             className="absolute inset-0 pointer-events-none rounded-lg z-0"
             style={{ backgroundImage: noiseTextureUrl }}
           />
-
-          <div className="absolute top-1.5 right-2 flex items-center gap-1 z-20 bg-white/70 backdrop-blur-sm border border-black/5 shadow-sm rounded-md px-1 py-0.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto transition-opacity duration-150">
-            <button
-              onClick={handleCopy}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:text-blue-600 hover:bg-blue-50 transition-all"
-              title="复制"
-            >
-              <Copy size={14} />
-            </button>
-            <button
-              onClick={handleDelete}
-              onPointerDown={(e) => e.stopPropagation()}
-              className="w-6 h-6 flex items-center justify-center rounded-full text-gray-600 hover:text-red-500 hover:bg-red-50 transition-all"
-              title="删除"
-            >
-              <X size={14} />
-            </button>
-          </div>
 
           <div
             className="flex-1 p-4 relative z-10 overflow-y-auto note-scrollbar"
